@@ -20,6 +20,9 @@ package
 		[Embed(source="audio/giggle3.mp3")]
 		public static var Giggle3Sfx:Class;
 		
+		[Embed(source="audio/finaldeath3.mp3")]
+		public static var FinalDeathSfx:Class;
+		
 		[Embed(source="audio/01.mp3")] public static const Talk1Sfx:Class;
 		[Embed(source="audio/02.mp3")] public static const Talk2Sfx:Class;
 		[Embed(source="audio/03.mp3")] public static const Talk3Sfx:Class;
@@ -35,6 +38,14 @@ package
 		[Embed(source="audio/13.mp3")] public static const Talk13Sfx:Class;
 		[Embed(source="audio/14.mp3")] public static const Talk14Sfx:Class;
 		[Embed(source="audio/15.mp3")] public static const Talk15Sfx:Class;
+		
+		
+		[Embed(source="audio/death1.mp3")] public static const Death1Sfx:Class;
+		[Embed(source="audio/death2.mp3")] public static const Death2Sfx:Class;
+		[Embed(source="audio/death3.mp3")] public static const Death3Sfx:Class;
+		[Embed(source="audio/death4.mp3")] public static const Death4Sfx:Class;
+		[Embed(source="audio/death5.mp3")] public static const Death5Sfx:Class;
+		[Embed(source="audio/death6.mp3")] public static const Death6Sfx:Class;
 		
 		public static var sounds:Object = {};
 		
@@ -67,11 +78,26 @@ package
 			for (i = 1; i <= 3; i++) {
 				sounds["giggle"+i] = new Sfx(Audio["Giggle" + i + "Sfx"]);
 			}
+			
+			for (i = 1; i <= 6; i++) {
+				sounds["death"+i] = new Sfx(Audio["Death" + i + "Sfx"]);
+			}
+			
+			sounds["finaldeath"] = new Sfx(FinalDeathSfx);
 		}
 		
 		public static function giggle ():void
 		{
 			//sounds["giggle" + int(FP.rand(3)+1)].play();
+		}
+		
+		private static var painI:int = 0;
+		
+		public static function pain ():void
+		{
+			sounds["death" + int(FP.rand(4)+3)].play();
+			
+			painI = (painI+1)%4;
 		}
 		
 		public static function play (sound:String):void

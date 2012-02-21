@@ -10,7 +10,7 @@ package
 			super(160, 120, 60, true);
 			FP.world = new Level();
 			FP.screen.scale = 4;
-			FP.console.enable();
+			//FP.console.enable();
 		}
 		
 		public override function init (): void

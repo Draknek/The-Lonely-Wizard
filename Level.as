@@ -1,6 +1,8 @@
 package
 {
+	import flash.geom.Rectangle;
 	import net.flashpunk.*;
+	import net.flashpunk.FP;
 	import net.flashpunk.graphics.*;
 	import net.flashpunk.masks.*;
 	import net.flashpunk.utils.*;
@@ -10,13 +12,27 @@ package
 		[Embed(source="images/bg.png")] public static const BgGfx: Class;
 		[Embed(source="images/slaughter.png")] public static const DeathGfx: Class;
 		
+		[Embed(source = 'amiga4ever.ttf', embedAsCFF="false", fontFamily = 'test')]
+		private static const FONT:Class;
+		
 		public var player:Player;
 		public var wizard:Wizard;
 		public var death:Spritemap;
 		public var text:Text;
+		public var title:Text;
+		public var deathE:Entity;
 		
 		public var state:int = 0;
 		public var waiting:Boolean = true;
+		public var waitingClick:Boolean = true;
+		public var stomping:Boolean = false;
+		
+		public var damage:int = 0;
+		
+		public var stompdelay:int = 0;
+		
+		public var screenflash:int = 0;
+		public var screenshake:int = 0;
 		
 		public var actions:Array = [];
 		
@@ -43,11 +59,21 @@ package
 			death.y = player.y - 57;
 			death.frame = -1;
 			
-			addGraphic(death);
+			deathE = addGraphic(death);
 			
 			Text.size = 8;
+			Text.font = "test";
 			
-			text = new Text("Press space");
+			title = new Text("The\nLonely\nWizard", 0, 0, {align:"center"});
+			
+			title.centerOO();
+			
+			title.x = 88;
+			title.y = 26;
+			
+			addGraphic(title);
+			
+			text = new Text("Click to start");
 			
 			text.centerOO();
 			
@@ -70,6 +96,7 @@ package
 				interrupt(wizard, 13, player, 14),
 				talk(wizard, 15),
 				attack,
+				stomp,
 			];
 		}
 		
@@ -77,8 +104,51 @@ package
 		{
 			super.update();
 			
+			if (waitingClick) {
+				if (Input.mousePressed) {
+					waiting = true;
+					waitingClick = false;
+					
+					text.text = "Press space";
+					
+					FP.tween(title, {alpha: 0}, 90);
+				}
+				
+				return;
+			}
+			
+			if (stomping) {
+				
+				damage -= 1;
+				if (damage < 0) damage = 0;
+			
+				if (Input.check(Key.SPACE)) {
+					if (stompdelay == 0) {
+						Audio.pain();
+						death.frame = 8;
+						screenshake = 10;
+						stompdelay = 1;	
+						damage += 20;
+						if (damage > 100) {
+							damage = 100;
+							stomping = false;
+							brandish();
+						}
+					}
+					stompdelay = 1;					
+				}
+				else {
+					stompdelay = 0;
+					if (screenshake > 0) {
+						death.frame = 8;
+					}else{
+					  death.frame = 9;
+					}
+				}
+			}
+			
 			if (Input.pressed(Key.SPACE)) {
-				if (! waiting) {
+				if (false){//! waiting) {
 					if (currentTween) currentTween.cancel();
 					if (currentSfx) currentSfx.stop();
 					waiting = true;
@@ -104,18 +174,90 @@ package
 			
 			death.frame = death.frame + 1;
 			
-			if (death.frame == 7) death.frame = 5;
+			if (death.frame < 7) {
+				if (death.frame == 1) {
+					FP.alarm(10, attack);
+				}else if (death.frame == 2) {
+					FP.alarm(4, attack);
+				}else if (death.frame == 3) {	
+					Audio.play("death2");
+					screenflash = 5; screenshake = 20;
+					FP.alarm(20, attack);
+				}else if (death.frame == 4) {	
+					FP.alarm(10, attack);
+				}else {
+					
+				  if (death.frame < 2) {
+			  	  FP.alarm(5, attack);	
+					}else {
+						FP.alarm(7, attack);	
+					}
+				}
+				
+			} else {
+				waiting = true;
+			}
+		}
+		
+		private var flashCount:int = 0;
+		
+		private function brandish ():void
+		{
+			if (death.frame < 10) {
+				screenflash = 5; screenshake = 20;
+				death.frame = 10;
+				Audio.play("finaldeath");
+			} else if (death.frame == 10) {
+				death.frame = 11;
+			} else if (death.frame == 11) {
+				screenflash = 10; screenshake = 60;
+				
+				flashCount++;
+			}
 			
-			waiting = true;
-			
-			state--;
+			if (flashCount < 5) {
+				FP.alarm(15, brandish);
+			} else {
+				//death.y -= 3;
+				//death.frame = 12;
+				
+				var black:Image = Image.createRect(FP.width, FP.height, 0x0);
+				
+				black.alpha = 0;
+				
+				addGraphic(black);
+				
+				FP.tween(black, {alpha: 1}, 5, {delay: 30});
+				
+				var end:Text = new Text("The end");
+				end.alpha = 0;
+				end.centerOO();
+				end.x = FP.width*0.5;
+				end.y = FP.height*0.5;
+				
+				addGraphic(end);
+				
+				FP.tween(end, {alpha: 1}, 30, {delay: 40, complete: function ():void {
+					death.alpha = 0;
+					deathE.layer = -1;
+					death.frame = 12;
+				}});
+				
+				FP.tween(death, {alpha: 1}, 60, {delay: 240});
+			}
+		}
+		
+		private function stomp ():void
+		{
+			stomping = true;
+			screenflash = 5; screenshake = 20;
 		}
 		
 		private function stab ():void
 		{
 			player.sprite.frame = 0;
 		}
-		
+		 
 		private function both(f1:Function, f2:Function):Function
 		{
 			return function ():void {
@@ -195,8 +337,26 @@ package
 		public override function render (): void
 		{
 			text.visible = waiting;
-			
+			if (screenshake > 0) {
+			  FP.camera.x = (Math.random() * 10) - 5;
+			  FP.camera.y = (Math.random() * 10) - 5;
+				screenshake--;
+			}else {
+			  FP.camera.x = 0;
+			  FP.camera.y = 0;
+			}
+				
 			super.render();
+			if(screenflash>0){
+			  FP.buffer.fillRect(new Rectangle(0, 0, 160, 120), 0x832212);
+				screenflash--;
+			}
+			
+			if(death.frame==8 || death.frame==9){
+				FP.buffer.fillRect(new Rectangle(29, 9, 102, 7), 0x000000);
+				FP.buffer.fillRect(new Rectangle(30, 10, 100, 5), 0x555555);
+				FP.buffer.fillRect(new Rectangle(30, 10, damage, 5), 0x832212);
+			}
 		}
 	}
 }

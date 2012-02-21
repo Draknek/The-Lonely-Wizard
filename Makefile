@@ -1,4 +1,4 @@
-OUTPUT := game.swf
+OUTPUT := wizard.swf
 
 ifdef DEBUG
 DEBUG_FLAG := true
